@@ -70,4 +70,9 @@ resource "aws_lambda_function" "dt_assignment_lambda" {
   runtime          = "nodejs18.x"
   filename         = data.archive_file.lambda.output_path
   source_code_hash = filebase64sha256(data.archive_file.lambda.output_path)
+  environment {
+    variables = {
+      DB_TABLE_NAME = var.db_table_name
+    }
+  }
 }
