@@ -1,0 +1,26 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "prebuild": "rm -rf dist",
+    "build": "esbuild src/api.ts --bundle --minify --sourcemap --platform=node --target=es2020 --outfile=dist/index.js",
+    "postbuild": "cd dist && zip -r lambda.zip index.js*",
+    "terraform:apply": "cd ../infrastructure && terraform init && terraform apply --auto-approve",
+    "deploy": "aws lambda update-function-code --function-name \"DTAssignmentLambda\" --zip-file \"fileb://dist/lambda.zip\" --color on"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.137",
+    "@types/node": "^20.12.5",
+    "cross-env": "^7.0.3",
+    "esbuild": "^0.20.2",
+    "typescript": "^5.4.4"
+  },
+  "dependencies": {
+    "env-cmd": "^10.1.0"
+  }
+}
