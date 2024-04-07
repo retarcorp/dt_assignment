@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "invoke:local": "npx ts-node src/index.ts",
     "prebuild": "rm -rf dist",
     "build": "esbuild src/api.ts --bundle --minify --sourcemap --platform=node --target=es2020 --outfile=dist/index.js",
     "postbuild": "cd dist && zip -r lambda.zip index.js*",
@@ -18,9 +19,14 @@
     "@types/node": "^20.12.5",
     "cross-env": "^7.0.3",
     "esbuild": "^0.20.2",
+    "ts-node": "^10.9.2",
     "typescript": "^5.4.4"
   },
   "dependencies": {
-    "env-cmd": "^10.1.0"
+    "@aws-sdk/client-dynamodb": "^3.549.0",
+    "aws-sdk": "^2.1594.0",
+    "dotenv": "^16.4.5",
+    "env-cmd": "^10.1.0",
+    "uuid": "^9.0.1"
   }
 }
