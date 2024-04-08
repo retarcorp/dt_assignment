@@ -52,6 +52,13 @@ const client = new DynamoDBClient({});
 
 export default class MoviesService {
 
+    constructor() {
+        if (!process.env.DB_TABLE_NAME) {
+            logger.fatal({}, 'DB_TABLE_NAME is not defined!');
+            throw new Error('DB_TABLE_NAME is not defined!');
+        }
+    }
+
     public async getMovies(query: string, page: number): Promise<MoviesFetchResult> {
 
         // Step 1. Check the cache
