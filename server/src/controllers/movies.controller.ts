@@ -1,4 +1,4 @@
-import { DynamoDBClient, PutItemCommand, QueryCommand, QueryCommandInput, ScanCommand } from "@aws-sdk/client-dynamodb";
+import { DeleteItemCommand, DynamoDBClient, PutItemCommand, QueryCommand, QueryCommandInput, ScanCommand, UpdateItemCommand } from "@aws-sdk/client-dynamodb";
 import { v4 as uuidv4 } from 'uuid';
 import * as SSM from '@aws-sdk/client-ssm';
 
@@ -30,8 +30,20 @@ export type MovieDBResponse = {
     query: string;
     createdAt: number;
     page: number;
+    totalPages: number;
+    totalResults: number;
     data: Movie[];
     hitCounter: number;
+}
+
+export type MoviesFetchResult = {
+    items: Movie[];
+    hitCounter: number;
+    fromCache: boolean;
+    cachedAt: number;
+    page: number;
+    totalPages: number;
+    totalResults: number;
 }
 
 const CACHE_TTL = 1000 * 2 * 60; // 2 minutes
@@ -39,24 +51,50 @@ const client = new DynamoDBClient({});
 
 export default class MoviesController {
 
-    public async getMovies(query: string, page: number): Promise<any> {
+    public async getMovies(query: string, page: number): Promise<MoviesFetchResult> {
 
         // Step 1. Check the cache
         const fetchedFromCache = await this.fetchFromCache(query, page);
 
         // Step 2. If in cache: return result, increment cache hit counter
+        if (fetchedFromCache) {
+            await this.updateCacheHitCounter(fetchedFromCache.id, fetchedFromCache.hitCounter + 1);
+            return {
+                items: fetchedFromCache.data,
+                hitCounter: fetchedFromCache.hitCounter + 1,
+                fromCache: true,
+                cachedAt: fetchedFromCache.createdAt,
+                page: fetchedFromCache.page,
+                totalPages: fetchedFromCache.totalPages,
+                totalResults: fetchedFromCache.totalResults,
+            }
+        }
+
 
         // Step 3. If not in cache: fetch data from API, filter and transform data
-        const fetchedFromApi: MovieApiResponse = await this.fetchFromApi(query);
+        const fetchedFromApi: MovieApiResponse = await this.fetchFromApi(query, page);
+        const response = {
+            items: fetchedFromApi.results,
+            hitCounter: 0,
+            fromCache: false,
+            cachedAt: Date.now(),
+            page: fetchedFromApi.page,
+            totalPages: fetchedFromApi.total_pages,
+            totalResults: fetchedFromApi.total_results,
+        }
         
         // Step 4. Put result in cache with increased hit counter, removing previous records if necessary
-        // await this.putInCache(fetchedFromApi, query, 1, 0);
+        await this.putInCache(
+            query,
+            page,
+            response.items,
+            response.totalPages,
+            response.totalResults,
+        );
 
         // Step 5. Return result
 
-        return {
-            fetchedFromApi,
-        };
+        return response;
     }
 
     private async fetchFromCache(query: string, page: number): Promise<MovieDBResponse | null> {
@@ -79,13 +117,22 @@ export default class MoviesController {
         };
     
         try {
-            // Send the query command to DynamoDB
             const command = new ScanCommand(params);
             const result = await client.send(command);
 
-            console.log(result);
+            if (result.Items && result.Items.length > 0) {
+                return {
+                    id: result.Items[0].id.S,
+                    query: result.Items[0].query.S,
+                    createdAt: Number(result.Items[0].createdAt.N),
+                    page: Number(result.Items[0].page.N),
+                    totalPages: Number(result.Items[0].totalPages.N),
+                    totalResults: Number(result.Items[0].totalCount.N),
+                    data: JSON.parse(result.Items[0].data.S),
+                    hitCounter: Number(result.Items[0].hitCounter.N),
+                }
+            }
     
-            // Return the queried items
             return null;
         } catch (error) {
             console.error('Error querying DynamoDB table:', error);
@@ -93,7 +140,7 @@ export default class MoviesController {
         }
     }
 
-    private async fetchFromApi(query: string): Promise<MovieApiResponse> {
+    private async fetchFromApi(query: string, page: number = 1): Promise<MovieApiResponse> {
 
         const command = new SSM.GetParameterCommand({
             Name: '/dt_assignment/read_api_key'
@@ -107,7 +154,7 @@ export default class MoviesController {
             'Authorization': `Bearer ${key}`
         }
 
-        const response = await fetch(`${url}?query=${query}`, { headers });
+        const response = await fetch(`${url}?query=${query}&page=${page}`, { headers });
         
         if (response.ok) {
             return await response.json();
@@ -115,19 +162,54 @@ export default class MoviesController {
         return null;
     }
 
-    private async putInCache(data: Movie[], query: string, page: number, hitCount: number = 0): Promise<any> {
+    private async putInCache(query: string, page: number, data: Movie[], totalPages: number, totalCount: number, createdAt: number = Date.now(), hitCount: number = 0): Promise<any> {
         const command = new PutItemCommand({
 
             TableName: process.env.DB_TABLE_NAME,
             Item: {
                 "id": { S: uuidv4() },
                 "query": { S: query },
-                "createdAt": { N: String(Date.now()) }, // TODO: don't reset createdAt if previous was cached
+                "createdAt": { N: String(createdAt) },
                 "page": { N: String(page) },
+                totalCount: { N: String(totalCount) },
+                totalPages: { N: String(totalPages) },
                 data: { S: JSON.stringify(data) },
                 hitCounter: { N: String(hitCount) }
             },
         })
         return await client.send(command);
     }
+
+    private async updateCacheHitCounter(id: string, hitCount: number): Promise<any> {
+        const command = new UpdateItemCommand({
+            Key:{
+                "id": { S: id }
+            },
+            TableName: process.env.DB_TABLE_NAME,
+            UpdateExpression: "set hitCounter = :c",
+            ExpressionAttributeValues:{
+                ":c": { N: String(hitCount) }
+            },
+            ReturnValues: "UPDATED_NEW"
+        })
+        return await client.send(command);
+    }
+
+    public async clearCache(): Promise<any> {
+        const command = new ScanCommand({
+            TableName: process.env.DB_TABLE_NAME
+        });
+        const result = await client.send(command);
+        if (result.Items && result.Items.length > 0) {
+            for (const item of result.Items) {
+                await client.send(new DeleteItemCommand({
+                    TableName: process.env.DB_TABLE_NAME,
+                    Key: {
+                        "id": item.id
+                    }
+                }))
+            }
+        }
+    }
+
 }
