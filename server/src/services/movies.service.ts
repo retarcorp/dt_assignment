@@ -1,6 +1,7 @@
 import { DeleteItemCommand, DynamoDBClient, PutItemCommand, QueryCommand, QueryCommandInput, ScanCommand, UpdateItemCommand } from "@aws-sdk/client-dynamodb";
 import { v4 as uuidv4 } from 'uuid';
 import * as SSM from '@aws-sdk/client-ssm';
+import { logger } from "../../utils/logger";
 
 export type Movie = {
     id: number;
@@ -135,7 +136,7 @@ export default class MoviesService {
 
             return null;
         } catch (error) {
-            console.error('Error querying DynamoDB table:', error);
+            logger.error(error, 'Error querying DynamoDB table');
             throw new Error('Error fetching data from application cache!');
         }
     }
@@ -152,8 +153,9 @@ export default class MoviesService {
             const { Parameter: { Value: key } } = await ssmClient.send(command);
             apiKey = key;
         } catch (e) {
-            console.error(e);
-            throw new Error('Unable to fetch API key for 3d-party API!');
+            const errorMessage = 'Unable to fetch API key for 3d-party API!';
+            logger.error(e, errorMessage);
+            throw new Error(errorMessage);
         }
 
         const url = `https://api.themoviedb.org/3/search/movie`
@@ -166,21 +168,22 @@ export default class MoviesService {
         try {
             response = await fetch(`${url}?query=${query}&page=${page}`, { headers });
         } catch (e) {
-            console.error(e);
-            throw new Error('Unable to fetch data from a remote API: connection error.')
+            const errorMessage = 'Unable to fetch data from a remote API: connection error.';
+            logger.error(e, errorMessage);
+            throw new Error(errorMessage)
         }
 
         if (response.ok) {
             try {
                 return await response.json();
             } catch (e) {
-                console.error(e);
-                throw new Error('3d-party API returned corrupted response text: unable to parse JSON.')
+                const errorMessage = 'Unable to parse response from a remote API!';
+                logger.error(e, errorMessage);
+                throw new Error(errorMessage)
             }
         }
-        console.error(response.status + ' ' + response.statusText);
-        console.error(await response.text());
-        console.error(`Fetched key is <${apiKey}>`);
+        logger.debug(await response.text(), response.status + ' ' + response.statusText);
+        logger.debug({}, `Fetched key is <${apiKey}>`);
         throw new Error('Request to a 3d-party API failed!')
     }
 
@@ -203,8 +206,9 @@ export default class MoviesService {
         try {
             return await client.send(command);
         } catch (e) {
-            console.error(e);
-            throw new Error('Unable to put item in cache!');
+            const errorMessage = 'Unable to put item in cache!';
+            logger.error(e, errorMessage);
+            throw new Error(errorMessage);
         }
     }
 
@@ -223,8 +227,9 @@ export default class MoviesService {
         try {
             return await client.send(command);
         } catch (e) {
-            console.error(e);
-            throw new Error('Unable to update cache hit counter!');
+            const errorMessage = 'Unable to update cache hit counter!';
+            logger.error(e, errorMessage);
+            throw new Error(errorMessage);
         }
     }
 
@@ -245,8 +250,9 @@ export default class MoviesService {
                 }
             }
         } catch (e) {
-            console.error(e);
-            throw new Error('Unable to clear cache!')
+            const errorMessage = 'Unable to clear cache!';
+            logger.error(e, errorMessage);
+            throw new Error(errorMessage);
         }
     }
 

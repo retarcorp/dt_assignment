@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import MoviesService from '../../services/movies.service';
+import { logger } from '../../../utils/logger';
 
 
 
@@ -17,9 +18,9 @@ module.exports.handler = async (event: any) => {
         'Access-Control-Max-Age': 2592000
     }
 
-    const controller = new MoviesService();
+    const service = new MoviesService();
     try {
-        const result = await controller.getMovies(query, page);
+        const result = await service.getMovies(query, page);
         return {
             statusCode: 200,
             body: JSON.stringify({
@@ -29,7 +30,7 @@ module.exports.handler = async (event: any) => {
 
         };
     } catch (e) {
-        console.error(e);
+        logger.error(e);
         return {
             statusCode: 500,
             body: JSON.stringify({
