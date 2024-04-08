@@ -38,6 +38,17 @@ data "aws_iam_policy_document" "lambda_execution_policy" {
     ]
     resources = ["*"]
   }
+
+  statement {
+    sid    = "SSMParameterAccess"
+    effect = "Allow"
+    actions = [
+      "ssm:GetParameter"
+    ]
+    resources = [
+      aws_ssm_parameter.read_api_key.arn
+    ]
+  }
 }
 
 resource "aws_iam_policy" "lambda_execution_policy" {
@@ -75,4 +86,8 @@ resource "aws_lambda_function" "dt_assignment_lambda" {
       DB_TABLE_NAME = var.db_table_name
     }
   }
+}
+
+output "lambda_arn" {
+  value = aws_lambda_function.dt_assignment_lambda.arn
 }

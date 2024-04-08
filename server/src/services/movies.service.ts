@@ -16,7 +16,7 @@ export type Movie = {
     vote_count: number;
     video: boolean;
     poster_path: string;
-} 
+}
 
 export type MovieApiResponse = {
     page: number;
@@ -49,7 +49,7 @@ export type MoviesFetchResult = {
 const CACHE_TTL = 1000 * 2 * 60; // 2 minutes
 const client = new DynamoDBClient({});
 
-export default class MoviesController {
+export default class MoviesService {
 
     public async getMovies(query: string, page: number): Promise<MoviesFetchResult> {
 
@@ -82,7 +82,7 @@ export default class MoviesController {
             totalPages: fetchedFromApi.total_pages,
             totalResults: fetchedFromApi.total_results,
         }
-        
+
         // Step 4. Put result in cache with increased hit counter, removing previous records if necessary
         await this.putInCache(
             query,
@@ -115,7 +115,7 @@ export default class MoviesController {
                 ':time': { N: String(currentTime) }
             },
         };
-    
+
         try {
             const command = new ScanCommand(params);
             const result = await client.send(command);
@@ -132,11 +132,11 @@ export default class MoviesController {
                     hitCounter: Number(result.Items[0].hitCounter.N),
                 }
             }
-    
+
             return null;
         } catch (error) {
             console.error('Error querying DynamoDB table:', error);
-            throw error;
+            throw new Error('Error fetching data from application cache!');
         }
     }
 
@@ -145,21 +145,43 @@ export default class MoviesController {
         const command = new SSM.GetParameterCommand({
             Name: '/dt_assignment/read_api_key'
         })
-        const ssmClient = new SSM.SSMClient({});
-        const { Parameter: { Value: key } } = await ssmClient.send(command);
+
+        let apiKey;
+        try {
+            const ssmClient = new SSM.SSMClient({});
+            const { Parameter: { Value: key } } = await ssmClient.send(command);
+            apiKey = key;
+        } catch (e) {
+            console.error(e);
+            throw new Error('Unable to fetch API key for 3d-party API!');
+        }
 
         const url = `https://api.themoviedb.org/3/search/movie`
         const headers = {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${key}`
+            'Authorization': `Bearer ${apiKey}`
         }
 
-        const response = await fetch(`${url}?query=${query}&page=${page}`, { headers });
-        
-        if (response.ok) {
-            return await response.json();
+        let response;
+        try {
+            response = await fetch(`${url}?query=${query}&page=${page}`, { headers });
+        } catch (e) {
+            console.error(e);
+            throw new Error('Unable to fetch data from a remote API: connection error.')
         }
-        return null;
+
+        if (response.ok) {
+            try {
+                return await response.json();
+            } catch (e) {
+                console.error(e);
+                throw new Error('3d-party API returned corrupted response text: unable to parse JSON.')
+            }
+        }
+        console.error(response.status + ' ' + response.statusText);
+        console.error(await response.text());
+        console.error(`Fetched key is <${apiKey}>`);
+        throw new Error('Request to a 3d-party API failed!')
     }
 
     private async putInCache(query: string, page: number, data: Movie[], totalPages: number, totalCount: number, createdAt: number = Date.now(), hitCount: number = 0): Promise<any> {
@@ -177,38 +199,54 @@ export default class MoviesController {
                 hitCounter: { N: String(hitCount) }
             },
         })
-        return await client.send(command);
+
+        try {
+            return await client.send(command);
+        } catch (e) {
+            console.error(e);
+            throw new Error('Unable to put item in cache!');
+        }
     }
 
     private async updateCacheHitCounter(id: string, hitCount: number): Promise<any> {
         const command = new UpdateItemCommand({
-            Key:{
+            Key: {
                 "id": { S: id }
             },
             TableName: process.env.DB_TABLE_NAME,
             UpdateExpression: "set hitCounter = :c",
-            ExpressionAttributeValues:{
+            ExpressionAttributeValues: {
                 ":c": { N: String(hitCount) }
             },
             ReturnValues: "UPDATED_NEW"
         })
-        return await client.send(command);
+        try {
+            return await client.send(command);
+        } catch (e) {
+            console.error(e);
+            throw new Error('Unable to update cache hit counter!');
+        }
     }
 
     public async clearCache(): Promise<any> {
         const command = new ScanCommand({
             TableName: process.env.DB_TABLE_NAME
         });
-        const result = await client.send(command);
-        if (result.Items && result.Items.length > 0) {
-            for (const item of result.Items) {
-                await client.send(new DeleteItemCommand({
-                    TableName: process.env.DB_TABLE_NAME,
-                    Key: {
-                        "id": item.id
-                    }
-                }))
+        try {
+            const result = await client.send(command);
+            if (result.Items && result.Items.length > 0) {
+                for (const item of result.Items) {
+                    await client.send(new DeleteItemCommand({
+                        TableName: process.env.DB_TABLE_NAME,
+                        Key: {
+                            "id": item.id
+                        }
+                    }))
+                }
             }
+        } catch (e) {
+            console.error(e);
+            throw new Error('Unable to clear cache!')
         }
     }
 

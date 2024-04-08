@@ -1,18 +1,17 @@
-import { after, describe } from "node:test";
-import MoviesController from "./movies.controller";
 import 'dotenv/config';
+import MoviesService from "./movies.service";
 
 jest.setTimeout(10000);
 
-describe("MoviesController", () => {
+describe("MoviesService", () => {
 
-    let controller: MoviesController;
+    let moviesService: MoviesService;
     beforeAll(() => {
-        controller = new MoviesController();
+        moviesService = new MoviesService();
     })
 
     afterEach(async () => {
-        await controller.clearCache();
+        await moviesService.clearCache();
     })
 
 
@@ -20,7 +19,7 @@ describe("MoviesController", () => {
         const query = "once";
         const page = 2;
 
-        const result = await controller.getMovies(query, page);
+        const result = await moviesService.getMovies(query, page);
         expect(result).toBeDefined();
         expect(result.items).toBeDefined
         expect(result.items.length).toBeGreaterThan(0);
@@ -36,17 +35,17 @@ describe("MoviesController", () => {
         const query = "love";
         const page = 3;
 
-        const firstResult = await controller.getMovies(query, page);
+        const firstResult = await moviesService.getMovies(query, page);
         expect(firstResult).toBeDefined();
         expect(firstResult.fromCache).toBe(false);
 
-        const secondResult = await controller.getMovies(query, page);
+        const secondResult = await moviesService.getMovies(query, page);
         expect(secondResult).toBeDefined();
         expect(secondResult.fromCache).toBe(true);
         expect(secondResult.hitCounter).toBe(1);
         expect(JSON.stringify(secondResult.items)).toEqual(JSON.stringify(firstResult.items));
 
-        const thirdResult = await controller.getMovies(query, page);
+        const thirdResult = await moviesService.getMovies(query, page);
         expect(thirdResult).toBeDefined();
         expect(thirdResult.fromCache).toBe(true);
         expect(thirdResult.hitCounter).toBe(2);
@@ -57,23 +56,23 @@ describe("MoviesController", () => {
         const query = "life";
 
         const firstPage = 2;
-        const firstResult = await controller.getMovies(query, firstPage);
+        const firstResult = await moviesService.getMovies(query, firstPage);
         expect(firstResult.page).toBe(firstPage);
         expect(firstResult.fromCache).toBe(false);
 
-        const repetitiveFirstResult = await controller.getMovies(query, firstPage);
+        const repetitiveFirstResult = await moviesService.getMovies(query, firstPage);
         expect(repetitiveFirstResult.page).toBe(firstPage);
         expect(repetitiveFirstResult.fromCache).toBe(true);
         expect(repetitiveFirstResult.hitCounter).toBe(1);
         expect(JSON.stringify(repetitiveFirstResult.items)).toEqual(JSON.stringify(firstResult.items));
 
         const secondPage = 3;
-        const secondResult = await controller.getMovies(query, secondPage);
+        const secondResult = await moviesService.getMovies(query, secondPage);
         expect(secondResult.page).toBe(secondPage);
         expect(secondResult.fromCache).toBe(false);
         expect(secondResult.hitCounter).toBe(0);
 
-        const repetitiveSecondResult = await controller.getMovies(query, secondPage);
+        const repetitiveSecondResult = await moviesService.getMovies(query, secondPage);
         expect(repetitiveSecondResult.page).toBe(secondPage);
         expect(repetitiveSecondResult.fromCache).toBe(true);
         expect(repetitiveSecondResult.hitCounter).toBe(1);
@@ -85,21 +84,19 @@ describe("MoviesController", () => {
         const query = "when";
         const page = 1;
 
-        const firstResult = await controller.getMovies(query, page);
+        const firstResult = await moviesService.getMovies(query, page);
         expect(firstResult).toBeDefined();
         expect(firstResult.fromCache).toBe(false);
 
-        const secondResult = await controller.getMovies(query, page);
+        const secondResult = await moviesService.getMovies(query, page);
         expect(secondResult).toBeDefined();
         expect(secondResult.fromCache).toBe(true);
         expect(secondResult.hitCounter).toBe(1);
         expect(JSON.stringify(secondResult.items)).toEqual(JSON.stringify(firstResult.items));
 
-        const thirdResult = await controller.getMovies(query, page);
+        const thirdResult = await moviesService.getMovies(query, page);
         expect(thirdResult).toBeDefined();
         expect(thirdResult.hitCounter).toBe(2);
         expect(thirdResult.cachedAt).toEqual(secondResult.cachedAt);
     })
-
-
 })

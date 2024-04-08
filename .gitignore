@@ -131,3 +131,4 @@ dist
 
 # Terraform
 .terraform/
+terraform.output

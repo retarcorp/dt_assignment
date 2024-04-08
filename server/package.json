@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "invoke:local": "npx ts-node src/index.ts",
+    "invoke:local": "npx ts-node src/runtimes/local/index.ts",
     "prebuild": "rm -rf dist",
-    "build": "esbuild src/api.ts --bundle --minify --sourcemap --platform=node --target=es2020 --outfile=dist/index.js",
+    "build": "esbuild src/runtimes/lambda/getMovies.ts --bundle --minify --sourcemap --platform=node --target=es2020 --outfile=dist/index.js",
     "postbuild": "cd dist && zip -r lambda.zip index.js*",
     "terraform:apply": "cd ../infrastructure && terraform init && terraform apply --auto-approve",
     "test": "jest",
