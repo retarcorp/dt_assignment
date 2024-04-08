@@ -52,6 +52,7 @@ const client = new DynamoDBClient({});
 
 export default class MoviesService {
 
+
     constructor() {
         if (!process.env.DB_TABLE_NAME) {
             logger.fatal({}, 'DB_TABLE_NAME is not defined!');

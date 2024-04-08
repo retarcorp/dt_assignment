@@ -8,7 +8,6 @@
 - ESLint
 
 ## Frontend
-- Create react app
 - UI layout
 - Connect to API
 - API errors handling
