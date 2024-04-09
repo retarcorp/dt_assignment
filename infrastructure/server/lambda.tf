@@ -70,8 +70,8 @@ resource "aws_iam_policy_attachment" "lambda_execution_policy_attachment" {
 
 data "archive_file" "lambda" {
   type        = "zip"
-  source_file = "../server/dist/index.js"
-  output_path = "../server/dist/lambda.zip"
+  source_file = "../../server/dist/index.js"
+  output_path = "../../server/dist/lambda.zip"
 }
 
 resource "aws_lambda_function" "dt_assignment_lambda" {

@@ -21,12 +21,12 @@ resource "local_file" "dotenv_server" {
   DB_TABLE_NAME=${var.db_table_name}
   EOF
 
-  filename = "../server/.env"
+  filename = "../../server/.env"
 }
 
 resource "local_file" "dotenv_client" {
   content  = <<EOF
   REACT_APP_API_BASE_URL=${aws_api_gateway_deployment.api_deployment.invoke_url}/${aws_api_gateway_resource.movies.path_part}
   EOF
-  filename = "../client/.env"
+  filename = "../../client/.env"
 }
