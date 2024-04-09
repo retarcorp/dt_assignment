@@ -14,9 +14,9 @@ export interface MovieCardProps {
 
 export default function MovieCard({ title, original_title, original_language, poster_path, overview, vote_average, vote_count, release_date }: MovieCardProps) {
 
-    return <Card sx={{ maxWidth: '350px'}}>
+    return <Card sx={{ width: '340px'}}>
         <CardHeader title={title}/>
-        <CardMedia component="img" src={poster_path} alt={title} title={title}/>
+        <CardMedia component="img" src={`https://image.tmdb.org/t/p/w500/${poster_path}`} alt={title} title={title}/>
         <CardContent>
             <Typography variant="h6">Original title: {original_title + ' (' + original_language + ')'}</Typography>
             <Typography variant="body1" sx={{ marginY: '10px'}}>{overview}</Typography>

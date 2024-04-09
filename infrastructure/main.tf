@@ -26,7 +26,7 @@ resource "local_file" "dotenv_server" {
 
 resource "local_file" "dotenv_client" {
   content  = <<EOF
-  API_BASE_URL=${aws_api_gateway_deployment.api_deployment.invoke_url}/${aws_api_gateway_resource.movies.path_part}
+  REACT_APP_API_BASE_URL=${aws_api_gateway_deployment.api_deployment.invoke_url}/${aws_api_gateway_resource.movies.path_part}
   EOF
   filename = "../client/.env"
 }
