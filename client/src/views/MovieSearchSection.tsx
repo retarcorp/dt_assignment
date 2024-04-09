@@ -3,7 +3,7 @@ import SearchControls from '../components/movie-search/SearchControls';
 import StatusBar from '../components/movie-search/StatusBar';
 import SearchResults from '../components/movie-search/SearchResults';
 import Pagination from '../components/movie-search/Pagination';
-import { Box } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { getMovies } from '../api/getMovies';
 
 type MoviesResponse = {
@@ -61,10 +61,11 @@ export default function MovieSearchSection() {
     return <div>
         <Box marginX={'auto'} maxWidth={'1100px'}>
             <SearchControls isSearching={isSearching} onSubmit={onSubmit} />
+            {totalResults === null && !isSearching && <Typography variant='caption'>Enter your query to start the search...</Typography>}
             <StatusBar error={error} isSearching={isSearching} fromCache={moviesData?.fromCache} totalResults={totalResults} hitCount={moviesData?.hitCounter} />
-            <Pagination pageCount={pageCount} currentPage={page} onPageChange={onPageChange} />
+            {pageCount > 1 && <Pagination pageCount={pageCount} currentPage={page} onPageChange={onPageChange} /> }
             <SearchResults items={moviesList}/>
-            <Pagination pageCount={pageCount} currentPage={page} onPageChange={onPageChange} />
+            {pageCount > 1 && <Pagination pageCount={pageCount} currentPage={page} onPageChange={onPageChange} /> }
         </Box>
     </div>
 }

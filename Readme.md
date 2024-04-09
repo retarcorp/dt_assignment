@@ -8,5 +8,5 @@
 - ESLint
 
 ## Frontend
-- Cypress tests for testing the app
 - As 'S3 static website' deployment
+- Cypress tests for testing the app
