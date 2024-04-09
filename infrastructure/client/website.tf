@@ -53,6 +53,13 @@ resource "aws_s3_bucket_acl" "bucket_acl" {
 resource "aws_s3_bucket_policy" "bucket_policy" {
   bucket = aws_s3_bucket.www_bucket.id
 
+  depends_on = [
+    aws_s3_bucket_acl.bucket_acl,
+    aws_s3_bucket_public_access_block.bucket_access_block,
+    aws_s3_bucket_ownership_controls.website_oc,
+    aws_s3_bucket_website_configuration.www_bucket
+  ]
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -73,7 +80,7 @@ resource "aws_s3_bucket_policy" "bucket_policy" {
 }
 
 output "url" {
-  value = aws_s3_bucket.www_bucket.website_endpoint
+  value = "http://${aws_s3_bucket.www_bucket.bucket}.s3-website.eu-west-3.amazonaws.com"
 }
 
 output "bucket_name" {

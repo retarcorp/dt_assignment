@@ -27,7 +27,7 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "sync-bucket-name": "node predeploy.js",
-    "deploy": "aws s3 sync build s3://www-dt-assignment-fep3dgx5"
+    "deploy": "aws s3 sync build s3://www-dt-assignment-2v0x7zj9"
   },
   "eslintConfig": {
     "extends": [

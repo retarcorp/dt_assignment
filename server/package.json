@@ -8,7 +8,7 @@
     "prebuild": "rm -rf dist",
     "build": "esbuild src/runtimes/lambda/getMovies.ts --bundle --minify --sourcemap --platform=node --target=es2020 --outfile=dist/index.js",
     "postbuild": "cd dist && zip -r lambda.zip index.js*",
-    "terraform:apply": "cd ../infrastructure && terraform init && terraform apply --auto-approve",
+    "terraform:apply": "cd ../../infrastructure && terraform init && terraform apply --auto-approve",
     "test": "jest",
     "deploy": "aws lambda update-function-code --function-name \"DTAssignmentLambda\" --zip-file \"fileb://dist/lambda.zip\" --color on"
   },
