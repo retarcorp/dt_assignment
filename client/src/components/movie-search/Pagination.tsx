@@ -1,8 +1,15 @@
+import { Pagination } from "@mui/material";
 import React from "react";
 
-export default function Pagination() {
+export interface PaginationBlockProps {
+    pageCount: number;
+    currentPage: number;
+    onPageChange: (value: number) => void;
+}
 
-    return <div>
-        Pagination
-    </div>
+export default function PaginationBlock({ pageCount, currentPage, onPageChange}: PaginationBlockProps) {
+
+    return <>
+        <Pagination count={pageCount} page={currentPage} onChange={(e, v) => onPageChange(v)}/>
+    </>
 }
